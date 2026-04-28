@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Heart,
   Pill,
-  Stethoscope
+  Stethoscope,
+  User
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -99,7 +100,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-primary-600 to-wellness-600 rounded-2xl p-6 text-white">
         <div className="flex items-center justify-between">

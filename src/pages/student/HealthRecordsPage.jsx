@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import studentApi from '../../api/studentApi';
+import { useAuth } from '../../context/AuthContext';
 import {
   FileText,
   Download,
@@ -13,13 +15,33 @@ import {
   Droplets,
   Heart,
   ClipboardList,
-  Lock
+  Lock,
+  Loader2
 } from 'lucide-react';
 
 const HealthRecordsPage = () => {
+  const { user } = useAuth();
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [filterType, setFilterType] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [healthRecords, setHealthRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      if (!user?.studentId) return;
+      try {
+        const data = await studentApi.getHealthRecords(user.studentId);
+        setHealthRecords(data);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch records');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRecords();
+  }, [user]);
 
   const recordTypes = [
     { id: 'all', label: 'All Records' },
@@ -27,86 +49,6 @@ const HealthRecordsPage = () => {
     { id: 'prescription', label: 'Prescriptions' },
     { id: 'visit', label: 'Visit Notes' },
     { id: 'immunization', label: 'Immunizations' },
-  ];
-
-  const healthRecords = [
-    {
-      id: 1,
-      type: 'lab',
-      title: 'Complete Blood Count (CBC)',
-      date: 'Feb 18, 2024',
-      doctor: 'Dr. Sarah Johnson',
-      status: 'normal',
-      summary: 'All values within normal range',
-      details: {
-        hemoglobin: '14.2 g/dL',
-        wbc: '7,500 /μL',
-        rbc: '4.8 million/μL',
-        platelets: '250,000 /μL',
-      }
-    },
-    {
-      id: 2,
-      type: 'prescription',
-      title: 'Vitamin D Supplement',
-      date: 'Feb 15, 2024',
-      doctor: 'Dr. Sarah Johnson',
-      status: 'active',
-      summary: 'Once daily with food',
-      details: {
-        medication: 'Vitamin D3 1000 IU',
-        dosage: '1 tablet daily',
-        duration: '3 months',
-        refills: 2,
-      }
-    },
-    {
-      id: 3,
-      type: 'visit',
-      title: 'General Checkup',
-      date: 'Feb 15, 2024',
-      doctor: 'Dr. Sarah Johnson',
-      status: 'completed',
-      summary: 'Routine examination - all vitals normal',
-      details: {
-        bloodPressure: '120/80 mmHg',
-        heartRate: '72 bpm',
-        temperature: '98.6°F',
-        weight: '70 kg',
-        height: '175 cm',
-        bmi: '22.9',
-      }
-    },
-    {
-      id: 4,
-      type: 'immunization',
-      title: 'Flu Vaccination',
-      date: 'Dec 10, 2023',
-      doctor: 'Dr. Robert Kim',
-      status: 'completed',
-      summary: 'Annual influenza vaccine administered',
-      details: {
-        vaccine: 'Influenza (Flu) Vaccine',
-        lotNumber: 'FL2023-4521',
-        site: 'Left Deltoid',
-        nextDose: 'N/A',
-      }
-    },
-    {
-      id: 5,
-      type: 'lab',
-      title: 'Lipid Panel',
-      date: 'Jan 20, 2024',
-      doctor: 'Dr. Sarah Johnson',
-      status: 'normal',
-      summary: 'Cholesterol levels within healthy range',
-      details: {
-        totalCholesterol: '180 mg/dL',
-        ldl: '95 mg/dL',
-        hdl: '55 mg/dL',
-        triglycerides: '120 mg/dL',
-      }
-    },
   ];
 
   const vitalHistory = [
@@ -153,7 +95,7 @@ const HealthRecordsPage = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -264,15 +206,21 @@ const HealthRecordsPage = () => {
           {selectedRecord && (
             <div className="card">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Record Details</h3>
-              <div className="space-y-3">
-                {Object.entries(selectedRecord.details).map(([key, value]) => (
-                  <div key={key} className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-sm text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                    <span className="text-sm font-medium text-gray-900">{value}</span>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Clinical Summary</label>
+                  <p className="text-sm text-gray-900 mt-1">{selectedRecord.summary || 'No summary available'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Conditions</label>
+                  <p className="text-sm text-gray-900 mt-1">{selectedRecord.conditions || 'None listed'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Special Notes</label>
+                  <p className="text-sm text-gray-900 mt-1 italic">{selectedRecord.notes || 'No extra notes'}</p>
+                </div>
               </div>
-              <button className="w-full mt-4 btn-primary flex items-center justify-center gap-2">
+              <button className="w-full mt-6 btn-primary flex items-center justify-center gap-2">
                 <Download className="w-4 h-4" />
                 Download PDF
               </button>

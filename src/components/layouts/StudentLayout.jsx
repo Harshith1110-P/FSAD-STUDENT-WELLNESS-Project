@@ -72,7 +72,7 @@ const StudentLayout = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 z-50 transition-all duration-300 ${
+        className={`fixed top-0 left-0 h-full glass-card border-r border-gray-200 z-50 transition-all duration-300 animate-fade-in-up ${
           sidebarOpen ? 'w-64' : 'w-20'
         } ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
@@ -114,8 +114,10 @@ const StudentLayout = () => {
 
         {/* Navigation */}
         <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100%-8rem)]">
-          {navItems.map((item) => (
-            <NavItem key={item.path} item={item} mobile />
+          {navItems.map((item, idx) => (
+            <div key={item.path} className="animate-fade-in-up" style={{ animationDelay: `${idx * 0.1}s` }}>
+              <NavItem item={item} mobile />
+            </div>
           ))}
         </nav>
       </aside>

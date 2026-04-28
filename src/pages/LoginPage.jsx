@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
   Heart, 
@@ -9,14 +9,17 @@ import {
   EyeOff, 
   AlertCircle,
   Shield,
-  User
+  User,
+  CheckCircle
 } from 'lucide-react';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState(location.state?.email || '');
+  const [password, setPassword] = useState(location.state?.password || '');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -24,6 +27,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
     setLoading(true);
 
     const result = await login(email, password);
@@ -55,8 +59,8 @@ const LoginPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-wellness-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-wellness-500 rounded-2xl shadow-lg mb-4">
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-wellness-500 rounded-2xl shadow-lg mb-4 animate-float">
             <Heart className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Student Health & Wellness</h1>
@@ -64,9 +68,16 @@ const LoginPage = () => {
         </div>
 
         {/* Login Card */}
-        <div className="card">
+        <div className="card animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign In</h2>
           
+          {successMessage && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+              <CheckCircle className="w-5 h-5" />
+              <span className="text-sm">{successMessage}</span>
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
               <AlertCircle className="w-5 h-5" />
@@ -165,6 +176,13 @@ const LoginPage = () => {
             </div>
           </div>
         </div>
+        
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Don't have an account?{' '}
+          <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+            Sign Up
+          </Link>
+        </p>
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">

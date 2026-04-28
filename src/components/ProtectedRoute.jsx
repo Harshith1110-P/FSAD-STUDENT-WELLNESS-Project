@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -20,15 +20,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  const userRole = user?.role?.toLowerCase();
+
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
     // Redirect to appropriate dashboard based on role
-    if (user?.role === 'admin') {
+    if (userRole === 'admin') {
       return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/student" replace />;
   }
 
-  return children;
+  return children ? children : <Outlet />;
 };
 
 export default ProtectedRoute;

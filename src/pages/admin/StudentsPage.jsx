@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import adminApi from '../../api/adminApi';
 import {
   Search,
   Filter,
@@ -15,88 +16,31 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Loader2
 } from 'lucide-react';
 
 const StudentsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const students = [
-    {
-      id: 1,
-      name: 'Priya Patel',
-      studentId: 'STU2024001',
-      email: 'priya.patel@university.edu',
-      phone: '+91 98765 43210',
-      course: 'Computer Science',
-      year: 3,
-      status: 'active',
-      lastVisit: 'Feb 15, 2024',
-      healthStatus: 'healthy',
-    },
-    {
-      id: 2,
-      name: 'Arjun Singh',
-      studentId: 'STU2024002',
-      email: 'arjun.singh@university.edu',
-      phone: '+91 98765 43211',
-      course: 'Medicine',
-      year: 2,
-      status: 'active',
-      lastVisit: 'Feb 18, 2024',
-      healthStatus: 'attention',
-    },
-    {
-      id: 3,
-      name: 'Ananya Sharma',
-      studentId: 'STU2024003',
-      email: 'ananya.sharma@university.edu',
-      phone: '+91 98765 43212',
-      course: 'Psychology',
-      year: 4,
-      status: 'active',
-      lastVisit: 'Feb 10, 2024',
-      healthStatus: 'healthy',
-    },
-    {
-      id: 4,
-      name: 'Rohan Gupta',
-      studentId: 'STU2024004',
-      email: 'rohan.gupta@university.edu',
-      phone: '+91 98765 43213',
-      course: 'Engineering',
-      year: 1,
-      status: 'inactive',
-      lastVisit: 'Jan 20, 2024',
-      healthStatus: 'healthy',
-    },
-    {
-      id: 5,
-      name: 'Deepika Nair',
-      studentId: 'STU2024005',
-      email: 'deepika.nair@university.edu',
-      phone: '+91 98765 43214',
-      course: 'Business',
-      year: 2,
-      status: 'active',
-      lastVisit: 'Feb 20, 2024',
-      healthStatus: 'healthy',
-    },
-    {
-      id: 6,
-      name: 'Vikram Reddy',
-      studentId: 'STU2024006',
-      email: 'vikram.reddy@university.edu',
-      phone: '+91 98765 43215',
-      course: 'Physics',
-      year: 3,
-      status: 'active',
-      lastVisit: 'Feb 12, 2024',
-      healthStatus: 'attention',
-    },
-  ];
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const data = await adminApi.getAllStudents();
+        setStudents(data);
+      } catch (err) {
+        setError(err.message || 'Failed to fetch students');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
 
   const filters = [
     { id: 'all', label: 'All Students' },

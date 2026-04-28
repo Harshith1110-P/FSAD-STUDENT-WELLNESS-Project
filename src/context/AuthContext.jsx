@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
+import authApi from '../api/authApi';
+
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
@@ -10,35 +12,13 @@ export const useAuth = () => {
   return context;
 };
 
-// Mock users for demonstration
-const mockUsers = [
-  {
-    id: 1,
-    email: 'admin@university.edu',
-    password: 'admin123',
-    name: 'Dr. Priya Sharma',
-    role: 'admin',
-    department: 'Health Services',
-  },
-  {
-    id: 2,
-    email: 'student@university.edu',
-    password: 'student123',
-    name: 'Rahul Kumar',
-    role: 'student',
-    studentId: 'STU2024001',
-    course: 'Computer Science',
-    year: 3,
-  },
-];
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem('healthwellness_user');
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -46,24 +26,22 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    // Simulate API call
-    const foundUser = mockUsers.find(
-      (u) => u.email === email && u.password === password
-    );
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('healthwellness_user', JSON.stringify(userWithoutPassword));
-      return { success: true, user: userWithoutPassword };
+    try {
+      const result = await authApi.login(email, password);
+      
+      if (result.success) {
+        setUser(result.user);
+        return { success: true, user: result.user };
+      }
+      return { success: false, error: result.message };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
-    
-    return { success: false, error: 'Invalid email or password' };
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('healthwellness_user');
+    authApi.logout();
   };
 
   const value = {

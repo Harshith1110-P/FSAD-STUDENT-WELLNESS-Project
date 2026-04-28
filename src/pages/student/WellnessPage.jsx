@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import studentApi from '../../api/studentApi';
+import { useAuth } from '../../context/AuthContext';
 import {
   Heart,
   Brain,
@@ -14,11 +16,39 @@ import {
   Target,
   Award,
   CheckCircle,
-  Circle
+  Circle,
+  Loader2
 } from 'lucide-react';
 
 const WellnessPage = () => {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [dailyGoals, setDailyGoals] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGoals = async () => {
+      if (!user?.studentId) return;
+      try {
+        const data = await studentApi.getWellnessGoals(user.studentId);
+        setDailyGoals(data);
+      } catch (err) {
+        console.error('Failed to fetch goals:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGoals();
+  }, [user]);
+
+  const handleToggleGoal = async (goalId) => {
+    try {
+      const updated = await studentApi.toggleWellnessGoal(goalId);
+      setDailyGoals(goals => goals.map(g => g.id === goalId ? updated : g));
+    } catch (err) {
+      console.error('Failed to toggle goal:', err);
+    }
+  };
 
   const categories = [
     { id: 'all', label: 'All', icon: Heart },
@@ -82,13 +112,8 @@ const WellnessPage = () => {
     },
   ];
 
-  const dailyGoals = [
-    { id: 1, task: 'Morning meditation (10 min)', completed: true, category: 'mental' },
-    { id: 2, task: 'Drink 8 glasses of water', completed: false, category: 'nutrition' },
-    { id: 3, task: '30-minute walk', completed: true, category: 'physical' },
-    { id: 4, task: 'No screen time before bed', completed: false, category: 'sleep' },
-    { id: 5, task: 'Eat 5 servings of fruits/vegetables', completed: false, category: 'nutrition' },
-  ];
+  const dailyGoalsCount = dailyGoals.filter(g => g.completed).length;
+  const progressPercent = dailyGoals.length === 0 ? 0 : Math.round((dailyGoalsCount / dailyGoals.length) * 100);
 
   const upcomingEvents = [
     { id: 1, title: 'Yoga Session', date: 'Feb 26, 2024', time: '7:00 AM', instructor: 'Sarah Miller' },
@@ -111,7 +136,13 @@ const WellnessPage = () => {
     : wellnessPrograms.filter(p => p.category === selectedCategory);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
+      {loading ? (
+        <div className="min-h-[400px] flex items-center justify-center">
+          <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
+        </div>
+      ) : (
+        <>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -120,7 +151,7 @@ const WellnessPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-primary-600" />
-          <span className="text-sm font-medium text-gray-700">Weekly Goal: 75% Complete</span>
+          <span className="text-sm font-medium text-gray-700">Daily Progress: {progressPercent}%</span>
         </div>
       </div>
 
@@ -223,30 +254,30 @@ const WellnessPage = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Daily Goals */}
+        <div className="space-y-6">          {/* Daily Goals */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Daily Goals</h3>
               <span className="text-sm text-primary-600 font-medium">
-                {dailyGoals.filter(g => g.completed).length}/{dailyGoals.length}
+                {dailyGoalsCount}/{dailyGoals.length}
               </span>
             </div>
             <div className="space-y-3">
               {dailyGoals.map((goal) => (
-                <div 
+                <button 
                   key={goal.id} 
-                  className={`flex items-center gap-3 p-3 rounded-lg ${goal.completed ? 'bg-green-50' : 'bg-gray-50'}`}
+                  onClick={() => handleToggleGoal(goal.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-all ${goal.completed ? 'bg-green-50 border border-green-100' : 'bg-gray-50 border border-transparent hover:border-primary-100'}`}
                 >
                   {goal.completed ? (
                     <CheckCircle className="w-5 h-5 text-green-500" />
                   ) : (
                     <Circle className="w-5 h-5 text-gray-300" />
                   )}
-                  <span className={`text-sm ${goal.completed ? 'text-green-700 line-through' : 'text-gray-700'}`}>
+                  <span className={`text-sm ${goal.completed ? 'text-green-700 line-through' : 'text-gray-700 font-medium'}`}>
                     {goal.task}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -278,12 +309,14 @@ const WellnessPage = () => {
               <Sun className="w-5 h-5" />
               <h3 className="font-semibold">Daily Tip</h3>
             </div>
-            <p className="text-sm text-primary-100">
+            <p className="text-sm text-primary-100 font-medium">
               Take a 5-minute break every hour to stretch and rest your eyes. This helps reduce fatigue and improves productivity.
             </p>
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import studentApi from '../../api/studentApi';
+import { useAuth } from '../../context/AuthContext';
 import {
   Calendar,
   Clock,
@@ -9,28 +11,40 @@ import {
   AlertCircle,
   Filter,
   Search,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 
 const AppointmentsPage = () => {
-  const [view, setView] = useState('upcoming'); // 'upcoming', 'past', 'book'
+  const { user } = useAuth();
+  const [view, setView] = useState('upcoming');
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [bookingStep, setBookingStep] = useState(1);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const upcomingAppointments = [
-    { id: 1, type: 'General Checkup', doctor: 'Dr. Priya Sharma', date: 'Feb 25, 2024', time: '10:00 AM', location: 'Room 102', status: 'confirmed' },
-    { id: 2, type: 'Dental Checkup', doctor: 'Dr. Rajesh Kumar', date: 'Mar 5, 2024', time: '2:30 PM', location: 'Dental Wing', status: 'pending' },
-    { id: 3, type: 'Eye Examination', doctor: 'Dr. Anjali Menon', date: 'Mar 12, 2024', time: '11:00 AM', location: 'Eye Care Center', status: 'confirmed' },
-  ];
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      if (!user?.studentId) return;
+      try {
+        const data = await studentApi.getAppointments(user.studentId);
+        setAppointments(data);
+      } catch (err) {
+        console.error('API Error (getAppointments):', err);
+        alert('Failed to load appointments. Please check your connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAppointments();
+  }, [user]);
 
-  const pastAppointments = [
-    { id: 1, type: 'General Checkup', doctor: 'Dr. Priya Sharma', date: 'Jan 15, 2024', time: '10:00 AM', notes: 'All vitals normal. Continue current medications.' },
-    { id: 2, type: 'Flu Vaccination', doctor: 'Dr. Vikram Singh', date: 'Dec 10, 2023', time: '3:00 PM', notes: 'Flu shot administered. No adverse reactions.' },
-  ];
+  const upcomingAppointments = appointments.filter(a => a.status === 'confirmed' || a.status === 'pending');
+  const pastAppointments = appointments.filter(a => a.status === 'completed' || a.status === 'cancelled');
 
   const services = [
     { id: 1, name: 'General Checkup', duration: '30 min', icon: '🩺' },
@@ -66,21 +80,57 @@ const AppointmentsPage = () => {
     });
   }
 
-  const handleBooking = () => {
-    setShowConfirmation(true);
-    setTimeout(() => {
-      setShowConfirmation(false);
-      setBookingStep(1);
-      setSelectedDate(null);
-      setSelectedTime(null);
-      setSelectedDoctor(null);
-      setSelectedService(null);
-      setView('upcoming');
-    }, 3000);
+  const handleBooking = async () => {
+    if (!user?.studentId || !selectedDate || !selectedTime || !selectedDoctor || !selectedService) return;
+    
+    setLoading(true);
+    try {
+      const newAppointment = {
+        studentId: user.studentId,
+        type: selectedService.name,
+        doctor: selectedDoctor.name,
+        date: selectedDate.fullDate,
+        time: selectedTime
+      };
+      
+      const savedAppointment = await studentApi.addAppointment(newAppointment);
+      setAppointments(prev => [...prev, savedAppointment]);
+      setShowConfirmation(true);
+      
+      setTimeout(() => {
+        setShowConfirmation(false);
+        setBookingStep(1);
+        setSelectedDate(null);
+        setSelectedTime(null);
+        setSelectedDoctor(null);
+        setSelectedService(null);
+        setView('upcoming');
+      }, 3000);
+    } catch (err) {
+      console.error('Booking failed with detailed error:', err);
+      // Try to extract a meaningful message from the error object
+      const errorMessage = err.message || (typeof err === 'string' ? err : 'Unknown error');
+      alert('Failed to book appointment: ' + errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = async (id) => {
+    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
+    
+    try {
+      await studentApi.cancelAppointment(id);
+      setAppointments(prev => prev.filter(a => a.id !== id));
+      alert('Appointment cancelled successfully');
+    } catch (err) {
+      console.error('Failed to cancel appointment:', err);
+      alert('Failed to cancel appointment. Please try again.');
+    }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -159,7 +209,10 @@ const AppointmentsPage = () => {
                   <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                     Reschedule
                   </button>
-                  <button className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => handleCancel(appointment.id)}
+                    className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
                     Cancel
                   </button>
                 </div>
@@ -396,9 +449,17 @@ const AppointmentsPage = () => {
                 </button>
                 <button
                   onClick={handleBooking}
-                  className="btn-primary"
+                  disabled={loading}
+                  className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Confirm Booking
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Booking...
+                    </>
+                  ) : (
+                    'Confirm Booking'
+                  )}
                 </button>
               </div>
             </div>

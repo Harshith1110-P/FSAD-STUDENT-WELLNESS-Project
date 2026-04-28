@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import studentApi from '../../api/studentApi';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -18,23 +19,35 @@ import {
   CheckCircle,
   TrendingUp,
   BookOpen,
-  MessageCircle
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
 
 const StudentDashboard = () => {
   const { user } = useAuth();
-  const [selectedTab, setSelectedTab] = useState('overview');
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const upcomingAppointments = [
-    { id: 1, type: 'General Checkup', doctor: 'Dr. Priya Sharma', date: 'Feb 25, 2024', time: '10:00 AM', location: 'Room 102' },
-    { id: 2, type: 'Dental Checkup', doctor: 'Dr. Rajesh Kumar', date: 'Mar 5, 2024', time: '2:30 PM', location: 'Dental Wing' },
-  ];
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      if (!user?.studentId) return;
+      try {
+        const data = await studentApi.getDashboard(user.studentId);
+        setDashboardData(data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, [user]);
 
   const healthMetrics = [
-    { label: 'BMI', value: '22.5', status: 'normal', unit: 'kg/m²' },
+    { label: 'Total Records', value: dashboardData?.totalRecords || '0', status: 'info', unit: '' },
+    { label: 'Upcoming', value: dashboardData?.upcomingAppointmentsCount || '0', status: 'normal', unit: 'Appts' },
     { label: 'Blood Pressure', value: '120/80', status: 'normal', unit: 'mmHg' },
-    { label: 'Heart Rate', value: '72', status: 'normal', unit: 'bpm' },
-    { label: 'Last Checkup', value: '15 days ago', status: 'info', unit: '' },
+    { label: 'Last Checkup', value: dashboardData?.lastCheckup || 'N/A', status: 'info', unit: '' },
   ];
 
   const quickServices = [
@@ -62,6 +75,8 @@ const StudentDashboard = () => {
     { id: 3, message: 'Lab results are now available', time: '2 days ago', unread: false },
   ];
 
+  const upcomingAppointments = dashboardData?.appointments || [];
+
   const getColorClasses = (color) => {
     const colors = {
       primary: { bg: 'bg-primary-100', text: 'text-primary-600', icon: 'text-primary-500' },
@@ -74,8 +89,16 @@ const StudentDashboard = () => {
     return colors[color] || colors.primary;
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-wellness-600 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-wellness-500 to-primary-500 rounded-2xl p-6 text-white">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

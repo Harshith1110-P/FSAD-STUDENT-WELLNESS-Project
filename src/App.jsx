@@ -8,6 +8,7 @@ import StudentLayout from './components/layouts/StudentLayout';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -34,6 +35,7 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />
